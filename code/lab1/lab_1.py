@@ -1,6 +1,9 @@
 import numpy as np
 import math
-
+import pandas as pd
+import matplotlib.pyplot as plt
+import time
+import numba
 
 def euclidean_distance_python(x: np.ndarray, y: np.ndarray) -> float:
     r"""Compute the Euclidean distance between two time series.
@@ -32,11 +35,14 @@ def euclidean_distance_python(x: np.ndarray, y: np.ndarray) -> float:
         distance += difference * difference
     return math.sqrt(distance)
 
+def euclidean_distance(x: np.ndarray, y: np.ndarray) -> float:
+    return 0.0
+
 def part1_example():
     # Basic usage
     x = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     y = np.array([2, 3, 4, 5, 6, 7, 8, 9, 10,11])
-    print(euclidean_distance(x, y))
+    print(euclidean_distance_python(x, y))
 
     m = len(x)
     C = np.full((m + 1, m + 1), np.inf, dtype=np.float64)
@@ -66,7 +72,7 @@ def part1_example():
     plt.savefig("jit_speed_time_vs_n.png", dpi=150)
     plt.show()
 
-import pandas as pd
+
 def one_hot_example():
     path ="../../data/one_hot.csv"
     df = pd.read_csv(path, header=None, names=["x1","x2","x3",
