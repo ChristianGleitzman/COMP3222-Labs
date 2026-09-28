@@ -23,34 +23,9 @@ DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "lab1"
 
 
 def euclidean_distance_python(x: np.ndarray, y: np.ndarray) -> float:
-    r"""Compute the Euclidean distance between two time series.
+    """Add a docstring."""
+    return 0
 
-    The Euclidean distance between two time series of length m is the square root of
-    the squared distance and is defined as:
-
-    .. math::
-        ed(x, y) = \sqrt{\sum_{i=1}^{n} (x_i - y_i)^2}
-
-    This implementation assumes that both time series are of equal length. It uses
-    native python to perform the calculation.
-
-    Parameters
-    ----------
-    x : 1D np.ndarray
-        First time series
-    y : 1D np.ndarray
-        Second time series of equal length to x
-
-    Returns
-    -------
-    float
-        Euclidean distance between x and y.
-    """
-    distance = 0
-    for i in range(len(x)):
-        difference = x[i] - y[i]
-        distance += difference * difference
-    return math.sqrt(distance)
 
 
 def time_distance(distance_function, n: int, random_state: int = 0) -> float:
