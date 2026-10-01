@@ -1,18 +1,19 @@
-from aeon.datasets import load_gunpoint, load_from_ts_file,load_italy_power_demand
 from sklearn.tree import DecisionTreeClassifier
 import matplotlib.pyplot as plt
-from sklearn import tree
 import numpy as np
 from sklearn.tree import _tree
-from sklearn.datasets import load_iris
 
 
-def load_data(split="train"):
-    X, y = load_italy_power_demand(return_type="numpy2D")
-    y = y.astype(np.int64)
-    print(y)
-    y = y-1
-    return X, y
+def load_data(split=None):
+    """Load ItalyPowerDemand as a 2D feature matrix and integer class labels.
+
+    Pass split="train" or "test" to load one partition; None loads both.
+    aeon is needed only when this function is called.
+    """
+    from aeon.datasets import load_italy_power_demand
+
+    X, y = load_italy_power_demand(split=split, return_type="numpy2d")
+    return X, y.astype(np.int64)
 
 
 def plot_tree_2d(
@@ -158,14 +159,12 @@ def plot_tree_2d(
 
 
 
-if __name__ == "__main__":    # Example usage
+if __name__ == "__main__":
+    # Starting point for Task 3. Change tree parameters and compare the shape.
     X, y = load_data()
-    print(X.shape, y.shape)
-    print(X.shape, y.shape)
-    print("Unique = ", set(y))
-    dt = DecisionTreeClassifier()
+    print("Data shapes:", X.shape, y.shape)
+    print("Classes:", np.unique(y))
+    dt = DecisionTreeClassifier(random_state=0)
     dt.fit(X, y)
-    iris = load_iris(as_frame=True)
-    X_iris = iris.data[["petal length (cm)", "petal width (cm)"]].values
-    y_iris = iris.target
+    print("Tree depth:", dt.get_depth(), "leaves:", dt.get_n_leaves())
 
