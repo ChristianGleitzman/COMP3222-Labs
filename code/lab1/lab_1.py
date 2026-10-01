@@ -6,8 +6,8 @@ This file is the worked example referred to in the lab sheet. It shows
   need for the timing experiment.
 * Task 2: how to load the two data files in ``data/lab1`` with pandas.
 
-The exercises themselves (the Numba version, DTW, the preprocessing pipeline and
-the single feature classifier) are left for you to write.
+The Numba version, DTW, preprocessing pipeline, and single-feature classifier
+are left for you to write. The Euclidean function below is a working example.
 """
 
 import math
