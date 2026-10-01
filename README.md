@@ -6,13 +6,14 @@ This repository contains lab sheets, starter code, notebooks, and datasets for C
 | --- | --- |
 | [Lab 1 guide](code/lab1/README.md) | [Lab Sheet 1](Lab%20Sheet%201.pdf), [starter example](code/lab1/lab_1.py), [notebook](notebooks/lab1.ipynb), and solutions in `code/lab1` |
 | [Lab 2 guide](code/lab2/README.md) | [Lab Sheet 2](Lab%20Sheet%202.pdf), starter code in `code/lab2`, and data in `data/lab2` |
+| [Lab 3 guide](code/lab3/README.md) | [Lab Sheet 3](Lab%20Sheet%203.pdf), starter code in `code/lab3`, and data in `data/lab3` |
 | [Jupyter introduction](notebooks/labW1_Intro_to_Jupyter.ipynb) | Optional NumPy and notebook practice |
 
-Later lab code is in `code/lab3` and `code/lab4`, with its data in the corresponding `data` directories. The lab sheet PDFs are at the repository root.
+Later lab code is in `code/lab4`, with its data in `data/lab4`. The lab sheet PDFs are at the repository root.
 
 ## Getting started
 
-Run commands from the repository root unless a lab guide says otherwise. Create and activate a virtual environment, then install the packages used in Labs 1 and 2:
+Run commands from the repository root unless a lab guide says otherwise. Create and activate a virtual environment, then install the packages used in the labs:
 
 ```bash
 python -m venv .venv

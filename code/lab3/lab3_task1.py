@@ -1,139 +1,99 @@
+"""Lab 3, Task 1: frequency and impact encoding (student starter)."""
+
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
 
+DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "lab3" / "credit_approval.csv"
+
+
 def frequency_encode(x: np.ndarray) -> np.ndarray:
-    """Perform frequency encoding on a 1D numpy array.
+    """Replace each category by its proportion in the supplied 1D array."""
+    # For example, if "sunny" occurs 5 times in 14 rows, encode it as 5/14.
+    raise NotImplementedError("Implement frequency_encode")
 
-    Each string value is replaced by its frequency in the array.
-    Parameters
-    ----------
-    x : np.ndarray
-        A 1D numpy array of categorical values (strings).
 
-    Returns
-    -------
-    np.ndarray
-        A 1D numpy array where each category is replaced by its frequency
-        in the original array.
+def impact_encode(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """Replace each category by the proportion of class 1 within it.
+
+    This lab uses binary labels 0 and 1, so the mean of y within a category
+    is also its proportion of class 1.
     """
-    return X
-
-
-def impact_encode(x: np.ndarray, y:np.ndarray) -> np.ndarray:
-    """Perform impact encoding on a 1D numpy array.
-
-    Each string value is replaced by the frequency of class 1 in y.
-    Parameters
-    ----------
-    x : np.ndarray
-        A 1D numpy array of categorical values (strings).
-    y : np.ndarray
-        A 1D numpy array of numerical target values.
-
-    Returns
-    -------
-    np.ndarray
-        A 1D numpy array where each category is replaced by the mean of the
-        target variable for that category.
-    """
-    return X
+    raise NotImplementedError("Implement impact_encode")
 
 
 def check_functions():
-    # Outlook / Play Golf data from the image (14 rows)
+    """Print the encodings for the 14-row example on lecture slide 53."""
     outlook = np.array([
         "sunny", "sunny", "overcast", "rain", "rain", "rain",
         "overcast", "sunny", "sunny", "rain", "sunny", "overcast",
-        "overcast", "rain"
-    ], dtype=object)
+        "overcast", "rain",
+    ])
+    play_golf = np.array([0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1])
 
-    play_golf = np.array([
-        0, 0, 0, 0, 0, 1,
-        1, 1, 1, 1, 1, 1,
-        1, 1
-    ], dtype=int)
-
-    # Run encoders
-    freq_encoded = frequency_encode(outlook)
-    impact_encoded = impact_encode(outlook, play_golf)
-
-    # Pretty-print results
-    print("Original  |  y  |  Freq-enc  |  Impact-enc (mean y per category)")
-    print("-" * 64)
-    for o, yv, f, ie in zip(outlook, play_golf, freq_encoded, impact_encoded):
-        print(f"{o:9s} | {yv:2d} | {f:9.3f} | {ie:9.3f}")
-
-    # Show learned mappings for clarity
-    # Frequency map
-    u, c = np.unique(outlook, return_counts=True)
-    freq_map = {ui: ci / len(outlook) for ui, ci in zip(u, c)}
-    # Impact map
-    sums_counts = {}
-    for cat, yv in zip(outlook, play_golf):
-        s, cc = sums_counts.get(cat, (0.0, 0))
-        sums_counts[cat] = (s + yv, cc + 1)
-    impact_map = {cat: s / cc for cat, (s, cc) in sums_counts.items()}
-
-    print("\nFrequency map:", freq_map)
-    print("Impact map (mean(y) per category):", impact_map)
+    frequency = frequency_encode(outlook)
+    impact = impact_encode(outlook, play_golf)
+    print("Outlook    y  Frequency  Impact")
+    for category, label, freq, value in zip(outlook, play_golf, frequency, impact):
+        print(f"{category:9s}  {label}  {freq:9.3f}  {value:6.3f}")
 
 
-def load_credit_approval_data(path):
+def is_numeric_col(col: np.ndarray) -> bool:
+    """Return whether every value in a column can be converted to float."""
+    try:
+        np.asarray(col, dtype=float)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+class FrequencyEncoderTransformer(TransformerMixin, BaseEstimator):
+    """Encode string columns using frequencies learned during fit.
+
+    Keep numeric columns unchanged. For a category not seen during fit, use
+    0.0. The output of transform should be a 2D float NumPy array.
     """
-    Load a CSV into a NumPy array with mixed types (floats + strings).
-    Assumes the target column is named `target`.
 
-    Parameters
-    ----------
-    path : str | PathLike
-        CSV file path.
-
-    Returns
-    -------
-    np.ndarray                      # if target is None
-    or (np.ndarray, np.ndarray)     # if target provided
-    """
-    df = pd.read_csv(path)
-    y = df["target"].to_numpy()
-    X = df.drop(columns=["target"]).to_numpy(dtype=object)
-    return X, y
-
-import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin
-
-def frequency_encode(x: np.ndarray) -> np.ndarray:
-    x = np.asarray(x)
-    uniques, counts = np.unique(x, return_counts=True)
-    freqs = counts.astype(float) / x.size
-    lookup = {u: f for u, f in zip(uniques, freqs)}
-    out = np.empty(x.size, dtype=float)
-    for i in range(x.size):
-        out[i] = lookup[x[i]]
-    return out
-
-
-class FrequencyEncoderTransformer(BaseEstimator, TransformerMixin):
-    """
-    Frequency-encode any non-numeric (string/bytes/mixed) columns.
-    Numeric columns pass through unchanged. No NaN handling.
-    """
     def fit(self, X, y=None):
-        return self
+        # Store one mapping for each categorical column. Do not learn anything
+        # from the test data in transform.
+        raise NotImplementedError("Implement FrequencyEncoderTransformer.fit")
 
     def transform(self, X):
-        return X
+        raise NotImplementedError("Implement FrequencyEncoderTransformer.transform")
+
+
+class ImpactEncoderTransformer(TransformerMixin, BaseEstimator):
+    """Encode string columns using class-1 rates learned during fit.
+
+    Keep numeric columns unchanged. For an unseen category, use the overall
+    class-1 rate from fit. The output should be a 2D float NumPy array.
+    """
+
+    def fit(self, X, y):
+        raise NotImplementedError("Implement ImpactEncoderTransformer.fit")
+
+    def transform(self, X):
+        raise NotImplementedError("Implement ImpactEncoderTransformer.transform")
+
+
+def load_credit_approval_data(path=DATA_PATH):
+    """Load credit approval as mixed-type X and binary y.
+
+    The original file contains incomplete rows. Drop them here so Task 1 can
+    concentrate on encoding; missing-value imputation was covered in Lab 1.
+    """
+    data = pd.read_csv(path).dropna()
+    X = data.drop(columns="target").to_numpy(dtype=object)
+    y = data["target"].to_numpy()
+    return X, y
 
 
 if __name__ == "__main__":
-    X, y = load_credit_approval_data("../../data/lab3/credit_approval.csv")
-    print(X.shape, y.shape)
-    print("Unique target values:", set(y))
-    print(X[0])
-    freq = FrequencyEncoderTransformer()
-    X2 = freq.fit_transform(X)
-    print(X2[0])
-
-
+    X, y = load_credit_approval_data()
+    print(f"Credit approval: {X.shape[0]} complete rows, {X.shape[1]} features")
+    print(f"Classes: {np.unique(y)}")
+    print("Implement the helpers, then call check_functions() to inspect them.")
