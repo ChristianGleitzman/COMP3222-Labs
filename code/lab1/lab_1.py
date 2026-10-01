@@ -20,12 +20,12 @@ import pandas as pd
 from numba import njit
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.compose import ColumnTransformer
+from sklearn.dummy import DummyClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.dummy import DummyClassifier
 
 # Data lives in <repo root>/data/lab1, this file is in <repo root>/code/lab1.
 DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "lab1"
@@ -94,7 +94,7 @@ def part1_example(show: bool = True):
     x = np.arange(1.0, 11.0)
     y = np.arange(2.0, 12.0)
     print("Python:", euclidean_distance_python(x, y))
-    
+
     # Time for increasing sizes of input.
     sizes = []
     t_py_list = []
@@ -140,7 +140,7 @@ def one_hot_example():
     colour = df["colour"].to_numpy(dtype=str)  # shape (n,)
     y = df["y"].to_numpy(dtype=int)  # shape (n,)
 
-    
+
 
     # One-hot encoding of colour
     encoder = OneHotEncoder(sparse_output=False,handle_unknown='ignore') # Sparse output makes the encoder return a dense array
@@ -150,7 +150,7 @@ def one_hot_example():
     colour_onehot = encoder.fit_transform(colour.reshape(-1,1))
     # Using column stack to append the whole rank feature column as a float
     X = np.column_stack((X, rank.astype(float), colour_onehot))
-    
+
     # Creating a dummy classifier to ensure X is clean
     dc = DummyClassifier()
     dc.fit(X, y)
@@ -309,11 +309,11 @@ def standard_pipeline_example():
     pipe = create_standard_pipeline()
     pipe.fit(X_train, y_train)
     y_pred = pipe.predict(X_test)
-    
+
 
 if __name__ == "__main__":
     one_hot_example()
     missing_example()
     pipeline_example()
     task3_example()
-    #part1_example()
+    #part1_example(False)
