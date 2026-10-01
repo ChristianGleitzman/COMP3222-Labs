@@ -2,11 +2,7 @@
 
 This lab follows the Week 2 lectures. Read [Lab Sheet 2](../../Lab%20Sheet%202.pdf) for the full exercises. It moves from calculating split quality by hand to fitting and interpreting scikit-learn decision trees.
 
-Run commands from the repository root. Install the core packages in the [root setup guide](../../README.md). The ItalyPowerDemand loader in Task 3 also needs:
-
-```bash
-python -m pip install aeon
-```
+Run commands from the repository root. The [root setup guide](../../README.md) installs the required packages, including `aeon` for Task 3.
 
 ## Task 1: Gini impurity and gain
 

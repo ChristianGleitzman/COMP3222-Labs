@@ -12,7 +12,7 @@ Later lab code is in `code/lab3` and `code/lab4`, with its data in the correspon
 
 ## Getting started
 
-Run commands from the repository root unless a lab guide says otherwise. Create and activate a virtual environment, then install the core packages:
+Run commands from the repository root unless a lab guide says otherwise. Create and activate a virtual environment, then install the packages used in Labs 1 and 2:
 
 ```bash
 python -m venv .venv
@@ -22,14 +22,14 @@ On Windows:
 
 ```powershell
 .venv\Scripts\Activate.ps1
-python -m pip install numpy pandas scikit-learn numba matplotlib jupyter
+python -m pip install numpy pandas scikit-learn numba matplotlib jupyter aeon
 ```
 
 On Linux or macOS:
 
 ```bash
 source .venv/bin/activate
-python -m pip install numpy pandas scikit-learn numba matplotlib jupyter
+python -m pip install numpy pandas scikit-learn numba matplotlib jupyter aeon
 ```
 
 Use the guides above for each lab's tasks and run commands.
