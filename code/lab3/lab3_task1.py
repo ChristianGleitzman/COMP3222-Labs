@@ -6,14 +6,15 @@ import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
-
 DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "lab3" / "credit_approval.csv"
 
 
 def frequency_encode(x: np.ndarray) -> np.ndarray:
     """Replace each category by its proportion in the supplied 1D array."""
     # For example, if "sunny" occurs 5 times in 14 rows, encode it as 5/14.
-    raise NotImplementedError("Implement frequency_encode")
+    _, inverse, counts = np.unique(x, return_inverse=True, return_counts=True)
+    print(inverse)
+    return counts[inverse] / len(x)
 
 
 def impact_encode(x: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -22,7 +23,16 @@ def impact_encode(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     This lab uses binary labels 0 and 1, so the mean of y within a category
     is also its proportion of class 1.
     """
-    raise NotImplementedError("Implement impact_encode")
+    # counts is an array with the counts of each category
+    # inverse is an arrray of indexes for each category e.g. 0 is "overcast"
+    _, inverse, counts = np.unique(x, return_inverse=True, return_counts=True)
+    # bincount normally counts how often each index appears.
+    # With weights=y, it adds each row's y to its category's slot instead.
+    # Because y is 0/1, that sum is the number of class-1 rows in the category
+    sums = np.bincount(inverse, weights=y) # the number of 1's for each category
+    rates = sums / counts # the proportion (or mean) of 1's for each category
+    # rates with inverse expands an otherwise 3 length list to all cases in the original order
+    return rates[inverse]
 
 
 def check_functions():
@@ -60,10 +70,28 @@ class FrequencyEncoderTransformer(TransformerMixin, BaseEstimator):
     def fit(self, X, y=None):
         # Store one mapping for each categorical column. Do not learn anything
         # from the test data in transform.
-        raise NotImplementedError("Implement FrequencyEncoderTransformer.fit")
+        X = np.asarray(X, dtype=object)
+        # Maps column index -> {category: proportion}. Numeric columns get no entry.
+        self.maps_ = {}
+        for j in range(X.shape[1]):
+            col = X[:, j]
+            if not is_numeric_col(col):
+                categories, counts = np.unique(col, return_counts=True)
+                self.maps_[j] = dict(zip(categories, counts / len(col)))
+        return self
 
     def transform(self, X):
-        raise NotImplementedError("Implement FrequencyEncoderTransformer.transform")
+        X = np.asarray(X, dtype=object)
+        out = np.empty(X.shape, dtype=float)
+        for j in range(X.shape[1]):
+            col = X[:, j]
+            if j in self.maps_:
+                # Unseen categories fall back to 0.0.
+                mapping = self.maps_[j]
+                out[:, j] = [mapping.get(v, 0.0) for v in col]
+            else:
+                out[:, j] = col.astype(float)
+        return out
 
 
 class ImpactEncoderTransformer(TransformerMixin, BaseEstimator):
@@ -97,3 +125,4 @@ if __name__ == "__main__":
     print(f"Credit approval: {X.shape[0]} complete rows, {X.shape[1]} features")
     print(f"Classes: {np.unique(y)}")
     print("Implement the helpers, then call check_functions() to inspect them.")
+    check_functions()
