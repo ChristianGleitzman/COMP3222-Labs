@@ -5,6 +5,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.tree import DecisionTreeClassifier
 
 DATA_PATH = Path(__file__).resolve().parents[2] / "data" / "lab3" / "credit_approval.csv"
 
@@ -102,11 +105,32 @@ class ImpactEncoderTransformer(TransformerMixin, BaseEstimator):
     """
 
     def fit(self, X, y):
-        raise NotImplementedError("Implement ImpactEncoderTransformer.fit")
+        X = np.asarray(X, dtype=object)
+        y = np.asarray(y, dtype=float)
+        self.prior_ = y.mean()
+        self.maps_ = {}
+        for j in range(X.shape[1]):
+            col = X[:, j]
+            if not is_numeric_col(col):
+                categories = np.unique(col)
+                rates = [y[col == c].mean() for c in categories]
+                self.maps_[j] = dict(zip(categories, rates))
+
+        return self
+
 
     def transform(self, X):
-        raise NotImplementedError("Implement ImpactEncoderTransformer.transform")
+        X = np.asarray(X, dtype=object)
+        out = np.empty(X.shape, dtype=float)
+        for j in range(X.shape[1]):
+            col = X[:, j]
+            if j in self.maps_:
+                mapping = self.maps_[j]
+                out[:, j] = [mapping.get(v, self.prior_) for v in col]
+            else:
+                out[:,j] = col.astype(float)
 
+        return out
 
 def load_credit_approval_data(path=DATA_PATH):
     """Load credit approval as mixed-type X and binary y.
@@ -119,10 +143,23 @@ def load_credit_approval_data(path=DATA_PATH):
     y = data["target"].to_numpy()
     return X, y
 
+def run_pipeline(encoder, seed=0):
+    X, y = load_credit_approval_data()
+
+    # Split BEFORE fitting any encoder, so test data never influences it.
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.3, random_state=seed, stratify=y
+    )
+
+    model = Pipeline([
+        ("encode", encoder),
+        ("clf", DecisionTreeClassifier()),
+    ])
+    model.fit(X_train, y_train)   # Pipeline passes y_train to encoder.fit too
+    preds = model.predict(X_test)
 
 if __name__ == "__main__":
     X, y = load_credit_approval_data()
+    run_pipeline(ImpactEncoderTransformer())
     print(f"Credit approval: {X.shape[0]} complete rows, {X.shape[1]} features")
     print(f"Classes: {np.unique(y)}")
-    print("Implement the helpers, then call check_functions() to inspect them.")
-    check_functions()
