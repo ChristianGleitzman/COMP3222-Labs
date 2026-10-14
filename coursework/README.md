@@ -6,10 +6,11 @@ Files for the COMP3222 Ensemble Selection coursework. The brief explains what to
 | --- | --- |
 | [`requirements.txt`](requirements.txt) | The Python package versions your code must run with |
 | [`part3_setup.py`](part3_setup.py) | Datasets, classifier pool and settings for Part 3 |
+| [`data/ucr`](data/ucr) | The eight UCR datasets used in Part 3 |
 
 ## Setting up
 
-Create a project folder for your submission, then copy `requirements.txt` and `part3_setup.py` into it. From that folder, create a virtual environment with Python 3.11, 3.12 or 3.13 and install the packages.
+Create a project folder for your submission, then copy `requirements.txt`, `part3_setup.py` and the `data` folder into it. From that folder, create a virtual environment with Python 3.11, 3.12 or 3.13 and install the packages.
 
 On Windows:
 
@@ -27,9 +28,13 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-Your folder should end up laid out like this, with `part3_setup.py` next to `solution/`:
+Your folder should end up laid out like this, with `part3_setup.py` and `data/` next to `solution/`:
 
 ```
+data/
+    ucr/
+        Computers/
+        ...
 part3_setup.py
 requirements.txt
 solution/
@@ -38,6 +43,8 @@ tests/
 
 ## Part 3 data
 
-`part3_setup.load_dataset(name)` downloads each UCR dataset the first time it is loaded and saves it in `data/ucr` next to `part3_setup.py`, so the first run needs an internet connection. To keep the data somewhere else, set the environment variable `COMP3222_UCR_DIR` to that directory.
+`part3_setup.load_dataset(name)` reads the datasets from `data/ucr` next to `part3_setup.py`. If you would rather not copy the data, set the environment variable `COMP3222_UCR_DIR` to the `coursework/data/ucr` folder of your clone of this repository instead.
 
-Do not change `part3_setup.py`, and do not submit it or the data.
+If a dataset is missing from that folder, `load_dataset` downloads it from the UCR archive and saves it there, which needs an internet connection. Use the copies in this repository where you can: they are the data your submission will be marked with.
+
+Do not change `part3_setup.py` or the data, and do not submit either of them.

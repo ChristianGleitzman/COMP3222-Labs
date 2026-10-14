@@ -6,10 +6,11 @@ run on the same datasets, with the same pool and the same settings::
     from part3_setup import (CV, DATASETS, RANDOM_STATE, load_dataset,
                              make_pool, make_stacking)
 
-Datasets are read from the directory named by the environment variable
+The datasets are included in the course repository under ``data/ucr``.
+They are read from the directory named by the environment variable
 COMP3222_UCR_DIR if it is set, and from ``data/ucr`` next to this file
-otherwise. A dataset that is not found there is downloaded on first use and
-saved in that directory, so later runs work offline.
+otherwise. A dataset that is not found there is downloaded from the UCR
+archive and saved in that directory, which needs an internet connection.
 """
 
 import os

@@ -8,6 +8,7 @@ This repository contains lab sheets, starter code, notebooks, and datasets for C
 | [Lab 2 guide](code/lab2/README.md) | [Lab Sheet 2](Lab%20Sheet%202.pdf), starter code in `code/lab2`, and data in `data/lab2` |
 | [Lab 3 guide](code/lab3/README.md) | [Lab Sheet 3](Lab%20Sheet%203.pdf), starter code in `code/lab3`, and data in `data/lab3` |
 | [Lab 4 guide](code/lab4/README.md) | [Lab Sheet 4](Lab%20Sheet%204.pdf), starter code in `code/lab4`; data is bundled with `aeon` |
+| [Coursework guide](coursework/README.md) | Setup, package versions and `part3_setup.py` for the Ensemble Selection coursework |
 | [Jupyter introduction](notebooks/labW1_Intro_to_Jupyter.ipynb) | Optional NumPy and notebook practice |
 
 Later lab code is in `code/lab4`, with its data in `data/lab4`. The lab sheet PDFs are at the repository root.
