@@ -35,6 +35,9 @@ class BasicEnsembleClassifier(ClassifierMixin, BaseEstimator):
         for _ in range(self.n_estimators):
             selected = rng.choice(len(X), size=m, replace=self.replace)
             member = clone(base_estimator)
+            # Trees break ties between equal splits at random, so seed each member too.
+            if "random_state" in member.get_params():
+                member.set_params(random_state=int(rng.integers(2**31)))
             member.fit(X[selected], y[selected])
             self.estimators_.append(member)
         return self
