@@ -1,10 +1,14 @@
 """Lab 4, Task 1: time series data, distances and nearest neighbours (student starter)."""
 
+import math
+
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.base import BaseEstimator, ClassifierMixin
-
+from aeon.classification.distance_based import KNeighborsTimeSeriesClassifier
 from aeon.datasets import load_basic_motions, load_gunpoint
+from numba import njit
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.ensemble import RandomForestClassifier
 
 
 def plot_examples(X, y, n_per_class=3):
@@ -17,13 +21,16 @@ def plot_examples(X, y, n_per_class=3):
     plt.legend()
     plt.show()
 
-
+@njit(cache=True)
 def euclidean_distance(x: np.ndarray, y: np.ndarray) -> float:
     """Return the Euclidean distance between two equal-length 1D series."""
     # You wrote this in Lab 1. Add @njit(cache=True) from numba for speed.
-    raise NotImplementedError("Implement euclidean_distance")
+    squared_sum = 0
+    for i in range(len(x)):
+        squared_sum += (x[i] - y[i]) ** 2
+    return math.sqrt(squared_sum)
 
-
+@njit(cache=True)
 def dtw_distance(x: np.ndarray, y: np.ndarray) -> float:
     """Return the DTW cost between two 1D series.
 
@@ -31,8 +38,17 @@ def dtw_distance(x: np.ndarray, y: np.ndarray) -> float:
     so that the result matches aeon.distances.dtw_distance.
     """
     # See the Lab 1 optional extension and code/lab1/lab1_task1_solution.py.
-    # C = np.full((n + 1, m + 1), np.inf); C[0, 0] = 0.0
-    raise NotImplementedError("Implement dtw_distance")
+    m = len(x)
+    costs = np.full((m + 1, m + 1), np.inf)
+    costs[0, 0] = 0.0
+
+    for i in range(1, m + 1):
+        for j in range(1, m + 1):
+            difference = x[i - 1] - y[j - 1]
+            costs[i, j] = difference**2 + min(
+                costs[i - 1, j - 1], costs[i - 1, j], costs[i, j - 1]
+            )
+    return costs[m, m]
 
 
 def check_distances():
@@ -56,22 +72,39 @@ class OneNearestNeighbour(ClassifierMixin, BaseEstimator):
         self.distance = distance
 
     def fit(self, X, y):
-        # TODO: Store the training series, labels and classes_.
-        raise NotImplementedError("Implement OneNearestNeighbour.fit")
+        self.X_ = X
+        self.y_ = y
+        self.classes_ = np.unique(y)
+        return self
 
     def predict(self, X):
-        # TODO: For each case in X, find the closest training case using the
-        # chosen distance on channel 0 and return its label.
-        raise NotImplementedError("Implement OneNearestNeighbour.predict")
+        func = euclidean_distance if self.distance == "euclidean" else dtw_distance
+        predictions = []
+
+        for case in X:
+            minimum = np.inf
+            best = None
+            for train_case, label in zip(self.X_, self.y_):
+                curr_distance = func(case[0], train_case[0])
+                if curr_distance < minimum:
+                    minimum = curr_distance
+                    best = label
+            predictions.append(best)
+
+        return np.array(predictions)
+
+
+
 
 
 if __name__ == "__main__":
     X_train, y_train = load_gunpoint(split="train")
     X_test, y_test = load_gunpoint(split="test")
+    X_train, y_train, X_test, y_test = map(np.asarray, (X_train, y_train, X_test, y_test))
     print(f"GunPoint train: X {X_train.shape}, y {y_train.shape}")
     print(f"GunPoint test:  X {X_test.shape}, y {y_test.shape}")
 
-    X_motion, y_motion = load_basic_motions(split="train")
+    X_motion, y_motion = map(np.asarray, load_basic_motions(split="train"))
     print(f"BasicMotions train: X {X_motion.shape}, classes {np.unique(y_motion)}")
 
     # TODO: Use plot_examples to look at both problems.
@@ -80,3 +113,39 @@ if __name__ == "__main__":
     # TODO: Shuffle the timepoints with one permutation for train and test, then repeat.
     # TODO: Compare OneNearestNeighbour with "euclidean" and "dtw", before and after
     #       shuffling, and check against KNeighborsTimeSeriesClassifier in aeon.
+    print(X_train[3,0]) # case 3
+    check_distances()
+    #plot_examples(X_train, y_train)
+    #plot_examples(X_motion, y_motion)
+
+    onn = OneNearestNeighbour()
+    onn.fit(X_train, y_train)
+    print(f"1NN score: {onn.score(X_test, y_test)}")
+
+    dtw = OneNearestNeighbour(distance="dtw").fit(X_train, y_train)
+    print("1-NN dtw accuracy:", dtw.score(X_test, y_test))
+
+    rfc = RandomForestClassifier(random_state=0)
+    rfc.fit(X_train[:, 0, :], y_train)
+    print("RF accuracy:", rfc.score(X_test[:, 0, :], y_test))
+
+    # Shuffle the timepoints with one permutation shared by train and test.
+    rng = np.random.default_rng(0)
+    perm = rng.permutation(X_train.shape[2])
+    X_train_s, X_test_s = X_train[:, :, perm], X_test[:, :, perm]
+
+    results = {}
+    for name, Xtr, Xte in [("original", X_train, X_test), ("shuffled", X_train_s, X_test_s)]:
+        rf = RandomForestClassifier(random_state=0).fit(Xtr[:, 0, :], y_train)
+        results[(name, "RF")] = rf.score(Xte[:, 0, :], y_test)
+        for dist in ["euclidean", "dtw"]:
+            mine = OneNearestNeighbour(distance=dist).fit(Xtr, y_train)
+            results[(name, f"1NN-{dist}")] = mine.score(Xte, y_test)
+            aeon_knn = KNeighborsTimeSeriesClassifier(n_neighbors=1, distance=dist)
+            aeon_knn.fit(Xtr, y_train)
+            results[(name, f"aeon-{dist}")] = aeon_knn.score(Xte, y_test)
+
+    print("\nGunPoint test accuracy")
+    for (name, model), acc in results.items():
+        print(f"{name:9s} {model:14s} {acc:.4f}")
+
