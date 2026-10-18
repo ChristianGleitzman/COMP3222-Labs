@@ -1,9 +1,12 @@
 """Lab 4, Task 2: summary features and random intervals (student starter)."""
 
 import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin
-
+from aeon.classification.interval_based import TimeSeriesForestClassifier
 from aeon.datasets import load_basic_motions, load_gunpoint
+from aeon.transformations.collection.feature_based import Catch22
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import make_pipeline
 
 
 def slope(X: np.ndarray) -> np.ndarray:
@@ -24,7 +27,14 @@ def summary_features(X: np.ndarray) -> np.ndarray:
     X has shape (n_cases, n_channels, n_timepoints); the result should have
     shape (n_cases, 5 * n_channels). See L4.2 slide 9.
     """
-    raise NotImplementedError("Implement summary_features")
+    # A single ':' in X[:, 1] for example, means "everything in this axis". Same idea as splicing just the general, unrestricted form
+
+    means = X.mean(axis=2)
+    stds = X.std(axis=2)
+    mins = X.min(axis=2)
+    maxes = X.max(axis=2)
+    slopes = slope(X)
+    return np.stack([means,stds,mins,maxes,slopes], axis = 2).reshape(len(X),-1)
 
 
 def check_functions():
@@ -40,10 +50,10 @@ class SummaryTransformer(TransformerMixin, BaseEstimator):
 
     def fit(self, X, y=None):
         # Nothing needs to be learned, but fit must still return self.
-        raise NotImplementedError("Implement SummaryTransformer.fit")
+        return self
 
     def transform(self, X):
-        raise NotImplementedError("Implement SummaryTransformer.transform")
+        return summary_features(X)
 
 
 class RandomIntervalTransformer(TransformerMixin, BaseEstimator):
@@ -61,22 +71,59 @@ class RandomIntervalTransformer(TransformerMixin, BaseEstimator):
     def fit(self, X, y=None):
         # TODO: rng = np.random.default_rng(self.random_state)
         # TODO: Store the chosen intervals in self.intervals_.
-        raise NotImplementedError("Implement RandomIntervalTransformer.fit")
+        rng = np.random.default_rng(self.random_state)
+        series_length = X.shape[-1]
+        self.intervals_ = []
+        if self.min_length > series_length:
+            raise IndexError("Minimum Interval Length is longer than the Series Length")
+        for _ in range(self.n_intervals):
+            start = rng.integers(0, series_length - self.min_length + 1)
+            end = rng.integers(start + self.min_length, series_length + 1)
+            self.intervals_.append((start,end))
+        return self
 
     def transform(self, X):
         # TODO: For each interval, X[:, :, start:end] gives one subseries per
         # channel. Concatenate its mean, std and slope into a 2D array.
-        raise NotImplementedError("Implement RandomIntervalTransformer.transform")
+        features = []
+        for interval in self.intervals_:
+            curr = X[:, :, interval[0]:interval[1]]
+            means = curr.mean(axis=-1)
+            stds = curr.std(axis=-1)
+            slopes = slope(curr)
+            curr_transform = np.stack([means,stds,slopes], axis = -1).reshape(len(curr),-1)
+            features.append(curr_transform)
 
+        return np.concatenate(features, axis=1)
 
 if __name__ == "__main__":
-    X_train, y_train = load_gunpoint(split="train")
-    X_test, y_test = load_gunpoint(split="test")
-    X_motion, y_motion = load_basic_motions(split="train")
-    print(f"GunPoint train {X_train.shape}; BasicMotions train {X_motion.shape}")
+    X_train, y_train = load_gunpoint(split="train") #type: ignore
+    X_test, y_test = load_gunpoint(split="test") #type: ignore
+    X_motion, y_motion = load_basic_motions(split="train") #type: ignore
+    print(f"GunPoint train {X_train.shape}; BasicMotions train {X_motion.shape}") #type: ignore
 
     # TODO: Implement summary_features, call check_functions() and print the
     #       feature shapes for GunPoint and BasicMotions.
     # TODO: Compare RandomForestClassifier on the raw series, on summary
     #       features and on random interval features (use make_pipeline).
     # TODO: Try Catch22 + RandomForestClassifier and TimeSeriesForestClassifier.
+
+    rf = RandomForestClassifier(random_state=0)
+    rf.fit(X_train.reshape(len(X_train), -1), y_train)
+    print("RF raw accuracy:", rf.score(X_test.reshape(len(X_test), -1), y_test))
+
+    rf_summary = make_pipeline(SummaryTransformer(), RandomForestClassifier(random_state=0))
+    rf_summary.fit(X_train, y_train)
+    print("RF summary accuracy:", rf_summary.score(X_test, y_test))
+
+    rf_interval = make_pipeline(RandomIntervalTransformer(), RandomForestClassifier(random_state=0))
+    rf_interval.fit(X_train, y_train)
+    print("RF interval accuracy:", rf_interval.score(X_test, y_test))
+
+    tsf = TimeSeriesForestClassifier(n_estimators=200, random_state=0)
+    tsf.fit(X_train, y_train)
+    print(tsf.score(X_test, y_test))
+
+    aeon_cls = make_pipeline(Catch22(), RandomForestClassifier(random_state=0))
+    aeon_cls.fit(X_train, y_train)
+    print("Catch 22 accuracy:", rf_interval.score(X_test, y_test))

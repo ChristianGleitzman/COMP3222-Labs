@@ -98,8 +98,8 @@ class OneNearestNeighbour(ClassifierMixin, BaseEstimator):
 
 
 if __name__ == "__main__":
-    X_train, y_train = load_gunpoint(split="train")
-    X_test, y_test = load_gunpoint(split="test")
+    X_train, y_train = load_gunpoint(split="train") #type: ignore
+    X_test, y_test = load_gunpoint(split="test") #type: ignore
     X_train, y_train, X_test, y_test = map(np.asarray, (X_train, y_train, X_test, y_test))
     print(f"GunPoint train: X {X_train.shape}, y {y_train.shape}")
     print(f"GunPoint test:  X {X_test.shape}, y {y_test.shape}")
