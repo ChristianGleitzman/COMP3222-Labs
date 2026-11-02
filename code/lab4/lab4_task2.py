@@ -126,4 +126,4 @@ if __name__ == "__main__":
 
     aeon_cls = make_pipeline(Catch22(), RandomForestClassifier(random_state=0))
     aeon_cls.fit(X_train, y_train)
-    print("Catch 22 accuracy:", rf_interval.score(X_test, y_test))
+    print("Catch 22 accuracy:", aeon_cls.score(X_test, y_test))
