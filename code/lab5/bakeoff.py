@@ -1,12 +1,18 @@
 """Lab 5, Task 2: comparing classifiers on multiple problems (student starter)."""
 
 from pathlib import Path
+import time
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from aeon.visualisation import plot_critical_difference, plot_pairwise_scatter
 from scipy.io import arff
-
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 from single_problem import make_classifiers
+from sklearn.base import clone
+from sklearn.metrics import balanced_accuracy_score
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "lab5"
 RESULTS_DIR = Path(__file__).resolve().parent / "results"
@@ -73,7 +79,24 @@ def run_one_dataset(name, classifiers, random_state=RANDOM_STATE):
     before fitting, and time fit with time.perf_counter(). Return a list with one
     dict per classifier, with keys "dataset", "classifier" and those in MEASURES.
     """
-    raise NotImplementedError("Implement run_one_dataset")
+    X, y = load_dataset(name)
+    # Integer labels 0, 1, ... in sorted class order; BasicEnsemble's vote needs ints.
+    y = LabelEncoder().fit_transform(y)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y, random_state=random_state)
+    dataset_list = []
+    for model_name, model in classifiers.items():
+        curr_model = clone(model)
+        start = time.perf_counter()
+        curr_model.fit(X_train, y_train)
+        fit_time = time.perf_counter() - start
+        dataset_list.append({
+            "dataset": name,
+            "classifier": model_name,
+            "accuracy": curr_model.score(X_test, y_test),
+            "balanced_accuracy": balanced_accuracy_score(y_test, curr_model.predict(X_test)),
+            "fit_time": fit_time
+        })
+    return dataset_list
 
 
 def run_experiments(datasets=DATASETS, results_file=RESULTS_FILE):
@@ -108,12 +131,17 @@ def average_ranks(table, lower_better=False):
     Rank 1 is best on a dataset. Tied classifiers share the average of their
     ranks; DataFrame.rank(axis=1, ...) does this.
     """
-    raise NotImplementedError("Implement average_ranks")
+    # rank 1 is best, so rank ascending when lower is better and descending otherwise
+    ranks = table.rank(axis=1, ascending=lower_better, method="average")
+    return ranks.mean(axis=0)
 
 
 def win_draw_loss(table, a, b, lower_better=False):
     """Return (wins, draws, losses) of classifier a against classifier b."""
-    raise NotImplementedError("Implement win_draw_loss")
+    better = table[a] < table[b] if lower_better else table[a] > table[b]
+    worse = table[a] > table[b] if lower_better else table[a] < table[b]
+    wins, losses = int(better.sum()), int(worse.sum())
+    return wins, len(table) - wins - losses, losses
 
 
 def check_functions():
@@ -135,9 +163,35 @@ if __name__ == "__main__":
 
     # TODO: Implement run_one_dataset. Check it on five datasets first, with a
     #       separate file: run_experiments(DATASETS[:5], RESULTS_DIR / "check.csv").
+    #run_experiments(DATASETS[:5], RESULTS_DIR / "check.csv")
     # TODO: Then run every dataset with run_experiments() and build
     #       results_table(results, measure) for each measure in MEASURES.
-    # TODO: Implement average_ranks and win_draw_loss, then call check_functions().
-    # TODO: Compare two classifiers with plot_pairwise_scatter, and all three with
-    #       plot_critical_difference(scores, labels, test="nemenyi", alpha=0.05,
-    #       lower_better=...). Both are in aeon.visualisation.
+    #run_experiments()
+    results = pd.read_csv(RESULTS_FILE)
+    for m in MEASURES:
+        print(results_table(results, m))
+    check_functions()
+
+    # Average ranks and pairwise win/draw/loss for each measure (lower fit time is better).
+    names = list(make_classifiers())
+    for m in MEASURES:
+        table = results_table(results, m)
+        lower = m == "fit_time"
+        print(f"\n{m}: average ranks")
+        print(average_ranks(table, lower_better=lower).round(2).to_string())
+        for i, a in enumerate(names):
+            for b in names[i + 1:]:
+                print(f"  {a} v {b} (win, draw, loss): {win_draw_loss(table, a, b, lower_better=lower)}")
+
+    # Pairwise scatter of two classifiers, and critical difference diagrams for all three.
+    acc = results_table(results, "accuracy")
+    plot_pairwise_scatter(acc["RandF"].to_numpy(), acc["RotF"].to_numpy(), "RandF", "RotF",
+                          metric="accuracy")
+    plt.savefig(RESULTS_DIR / "scatter_RandF_RotF_accuracy.png", dpi=150, bbox_inches="tight")
+    plt.close()
+    for m in MEASURES:
+        table = results_table(results, m)
+        plot_critical_difference(table.to_numpy(), list(table.columns), test="nemenyi",
+                                 alpha=0.05, lower_better=(m == "fit_time"))
+        plt.savefig(RESULTS_DIR / f"cd_{m}.png", dpi=150, bbox_inches="tight")
+        plt.close()
