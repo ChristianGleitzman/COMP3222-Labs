@@ -1,6 +1,7 @@
 """Lab 6: the perceptron (student starter)."""
 
 import time
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,9 +15,14 @@ from sklearn.preprocessing import StandardScaler
 X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]], dtype=float)
 t = np.array([0, 0, 0, 1])  # AND targets
 
+RESULTS_DIR = Path(__file__).resolve().parent / "results"
 
-def plot_boundary(predict, X, t, title=""):
-    """Shade the regions that any classifier assigns to each class. Reused throughout."""
+
+def plot_boundary(predict, X, t, title="", save_as=None):
+    """Shade the regions that any classifier assigns to each class. Reused throughout.
+
+    If save_as is given, the figure is also saved to RESULTS_DIR / save_as.
+    """
     xx, yy = np.meshgrid(np.linspace(X[:, 0].min() - 0.5, X[:, 0].max() + 0.5, 300),
                          np.linspace(X[:, 1].min() - 0.5, X[:, 1].max() + 0.5, 300))
     zz = predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)
@@ -27,7 +33,25 @@ def plot_boundary(predict, X, t, title=""):
     plt.ylabel("$x_2$")
     plt.title(title)
     plt.legend()
+    show(save_as)
+
+
+def show(save_as=None):
+    """Save the current figure (if asked) and then show it."""
+    if save_as:
+        RESULTS_DIR.mkdir(exist_ok=True)
+        plt.savefig(RESULTS_DIR / save_as, dpi=150, bbox_inches="tight")
     plt.show()
+    plt.close()
+
+
+def plot_history(history, title, save_as=None):
+    """Plot the mistakes made in each epoch."""
+    plt.plot(range(1, len(history) + 1), history, marker="o" if len(history) < 40 else None)
+    plt.xlabel("Epoch")
+    plt.ylabel("Mistakes")
+    plt.title(title)
+    show(save_as)
 
 
 # Part 1: teaching a perceptron logical AND.
@@ -45,12 +69,12 @@ def perceptron_fit(X, t, eta=1.0, w_init=None, max_epochs=100):
     for epoch in range(max_epochs):
         mistakes = 0
         for x, target in zip(Xb, t):
-            y = ...  # TODO: 1 if w @ x > 0, else 0
+            y = 1 if w @ x > 0 else 0  # TODO: 1 if w @ x > 0, else 0
             if y != target:
-                w = ...  # TODO: the update rule
+                w = w - eta * (y - target) * x
                 mistakes += 1
         mistakes_per_epoch.append(mistakes)
-        if ...:  # TODO: stop when converged
+        if mistakes == 0:  # TODO: stop when converged
             break
     return w, mistakes_per_epoch
 
@@ -75,15 +99,15 @@ def make_gaussian_data():
 # Part 3: different activation functions, trained by gradient descent.
 
 def sigmoid(z):
-    return ...  # TODO: 1 / (1 + e^(-z))
+    return 1 / (1 + np.exp(-z))  # TODO: 1 / (1 + e^(-z))
 
 
 def tanh(z):
-    return ...  # TODO: use np.tanh
+    return np.tanh(z)  # TODO: use np.tanh
 
 
 def relu(z):
-    return ...  # TODO: max(0, z), use np.maximum
+    return np.maximum(0,z)  # TODO: max(0, z), use np.maximum
 
 
 ACTIVATIONS = {  # name: (f, f'(a, z), targets for class 0/1, threshold)
@@ -123,37 +147,68 @@ if __name__ == "__main__":
     print(f"AND: X {X.shape}, targets {t}")
     print(f"Gaussian data: {len(X_tr)} train, {len(X_va)} validation")
 
-    # TODO 1: Fill in the three TODO lines in perceptron_fit, then:
-    #   1. Train with w, history = perceptron_fit(X, t). Print the final weights
-    #      and the number of epochs.
-    #   2. Plot the boundary:
-    #      plot_boundary(lambda P: perceptron_predict(w, P), X, t).
-    #   3. Plot history (mistakes per epoch).
-    #   4. Learning rate: record the epochs needed for each cell.
-    #        Starting weights            eta=0.01   eta=0.1   eta=1
-    #        all zeros (w_init=None)
-    #        (1, 0, 0) (w_init=[1, 0, 0])
+    # Part 1: teaching a perceptron logical AND.
+    print("\n=== Part 1: logical AND ===")
+    w, history = perceptron_fit(X, t)
+    print(f"Final weights (bias, w1, w2): {w}, epochs: {len(history)}")
+    print(f"Mistakes per epoch: {history}")
+    plot_boundary(lambda P: perceptron_predict(w, P), X, t, "Perceptron on AND",
+                  save_as="part1_and_boundary.png")
+    plot_history(history, "AND: mistakes per epoch", save_as="part1_and_history.png")
 
-    # TODO 2: Larger dataset with scikit-learn.
-    #   1. Train clf = Perceptron(random_state=0) with clf.fit(X_tr, t_tr).
-    #   2. Report the accuracy on the training and validation sets with clf.score(...).
-    #   3. Plot the boundary with plot_boundary(clf.predict, X_tr, t_tr).
-    #   4. Train your own perceptron_fit on X_tr, t_tr with max_epochs=1000. Plot its
-    #      mistakes per epoch. Does it reach zero mistakes?
+    # Epochs needed for each learning rate and starting weights (100 is the cap).
+    etas = [0.01, 0.1, 1]
+    starts = {"all zeros": None, "(1, 0, 0)": [1, 0, 0]}
+    print("\nEpochs needed")
+    print(f"{'Starting weights':18s}" + "".join(f"eta={eta:<8}" for eta in etas))
+    for label, w_init in starts.items():
+        epochs = [len(perceptron_fit(X, t, eta=eta, w_init=w_init)[1]) for eta in etas]
+        print(f"{label:18s}" + "".join(f"{e:<12}" for e in epochs))
 
-    # TODO 3: Fill in sigmoid, tanh and relu, then train each activation on the
-    #   Gaussian training set from Part 2 (time.perf_counter() gives the time in
-    #   seconds). Record the time and the training and validation accuracy.
-    #        Activation      Time (ms)   Train acc.   Validation acc.
-    #        step (Part 2)
-    #        sigmoid
-    #        tanh
-    #        ReLU
-    #   Plot the decision boundary for each activation:
-    #   plot_boundary(lambda P: neuron_predict(w, P, act), X_tr, t_tr).
+    # Part 2: a larger dataset with scikit-learn.
+    print("\n=== Part 2: Gaussian data ===")
+    clf = Perceptron(random_state=0)
+    clf.fit(X_tr, t_tr)
+    print(f"sklearn Perceptron: train accuracy {clf.score(X_tr, t_tr):.4f}, "
+          f"validation accuracy {clf.score(X_va, t_va):.4f}")
+    plot_boundary(clf.predict, X_tr, t_tr, "sklearn Perceptron", save_as="part2_sklearn_boundary.png")
 
-    # Optional: compare the test accuracy of a raw and a scaled perceptron on breast
-    #   cancer, and the accuracy of always predicting the most common class.
-    #   X_tr3, X_te3, t_tr3, t_te3 = make_breast_cancer_split()
-    #   raw = Perceptron(random_state=0).fit(X_tr3, t_tr3)
-    #   scaled = make_pipeline(StandardScaler(), Perceptron(random_state=0)).fit(X_tr3, t_tr3)
+    w2, history2 = perceptron_fit(X_tr, t_tr, max_epochs=1000)
+    print(f"Own perceptron: {len(history2)} epochs, final-epoch mistakes {history2[-1]}, "
+          f"minimum {min(history2)}, reached zero: {history2[-1] == 0}")
+    print(f"Own perceptron: train accuracy {(perceptron_predict(w2, X_tr) == t_tr).mean():.4f}, "
+          f"validation accuracy {(perceptron_predict(w2, X_va) == t_va).mean():.4f}")
+    plot_history(history2, "Gaussian data: mistakes per epoch (own perceptron)",
+                 save_as="part2_own_history.png")
+
+    # Part 3: different activation functions.
+    print("\n=== Part 3: activation functions ===")
+    start = time.perf_counter()
+    Perceptron(random_state=0).fit(X_tr, t_tr)
+    rows = [("step (Part 2)", (time.perf_counter() - start) * 1000,
+             clf.score(X_tr, t_tr), clf.score(X_va, t_va))]
+    ws = {}
+    for act in ACTIVATIONS:
+        start = time.perf_counter()
+        ws[act] = neuron_fit(X_tr, t_tr, act)
+        elapsed = (time.perf_counter() - start) * 1000
+        rows.append((act, elapsed,
+                     (neuron_predict(ws[act], X_tr, act) == t_tr).mean(),
+                     (neuron_predict(ws[act], X_va, act) == t_va).mean()))
+    print(f"{'Activation':15s}{'Time (ms)':>10s}{'Train acc.':>12s}{'Val. acc.':>11s}")
+    for name, ms, train_acc, val_acc in rows:
+        print(f"{name:15s}{ms:10.1f}{train_acc:12.4f}{val_acc:11.4f}")
+    for act in ACTIVATIONS:
+        plot_boundary(lambda P, a=act: neuron_predict(ws[a], P, a), X_tr, t_tr,
+                      f"{act} neuron", save_as=f"part3_{act}_boundary.png")
+
+    # Optional: real data.
+    print("\n=== Optional: breast cancer ===")
+    X_tr3, X_te3, t_tr3, t_te3 = make_breast_cancer_split()
+    raw = Perceptron(random_state=0).fit(X_tr3, t_tr3)
+    scaled = make_pipeline(StandardScaler(), Perceptron(random_state=0)).fit(X_tr3, t_tr3)
+    majority = np.bincount(t_tr3).argmax()
+    print(f"Raw test accuracy:    {raw.score(X_te3, t_te3):.4f}")
+    print(f"Scaled test accuracy: {scaled.score(X_te3, t_te3):.4f}")
+    print(f"Always predicting the most common class ({majority}): "
+          f"{(t_te3 == majority).mean():.4f}")
